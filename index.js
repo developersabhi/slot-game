@@ -2,8 +2,8 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
-// Available keys for the slot game (you can replace these with any keys you prefer)
-const keys = ['A', 'B', 'C', 'D', 'E', 'W'];  // 'W' is for wild key
+// Available keys for the slot game (including 'W' for wild)
+const keys = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'W'];  // 'W' is for wild key
 
 // Hidden indices in the matrix
 const hiddenIndices1 = [0, 1, 2, 3, 4];  // Hidden indices in the first row (row 1)
