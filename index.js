@@ -32,7 +32,10 @@ const winningCombinations = [
   [20, 16, 12, 8, 4],
 ];
 
-// Function to generate a 5x5 matrix with random keys
+// Bet amount (for simplicity, assume a fixed bet)
+const betAmount = 10;  
+
+
 function generateMatrix() {
   let matrix = Array(5).fill(null).map(() => Array(5).fill(null));
 
@@ -48,7 +51,7 @@ function generateMatrix() {
     }
   }
 
-  // Verify all visible indices are assigned a key
+
   for (let row = 0; row < 5; row++) {
     for (let col = 0; col < 5; col++) {
       const index = row * 5 + col;
@@ -61,7 +64,7 @@ function generateMatrix() {
   return matrix;
 }
 
-// Function to handle Wild expansion and respins
+
 function handleWilds(matrix) {
   let respins = 0;
   let wildsExist;
@@ -69,7 +72,7 @@ function handleWilds(matrix) {
   do {
     wildsExist = false;
 
-    // Look for Wild keys and expand them on reels 2, 3, and 4
+    // r Wild keys and expand on reels 2, 3, and 4
     for (let col = 1; col <= 3; col++) {  // Columns 1, 2, and 3 (reels 2, 3, 4)
       for (let row = 0; row < 5; row++) {
         if (matrix[row][col] === 'W') {  // 'W' is the wild key
@@ -81,13 +84,23 @@ function handleWilds(matrix) {
     }
 
     respins += 1;
-  } while (wildsExist && respins < 3);  // Allow up to 3 respins
+  } while (wildsExist && respins < 3);  // 3 re-spins
 
   return { matrix, respins };
 }
 
-// Function to check winning combinations
+
 function checkWinner(matrix) {
+  const payouts = {
+    'A': [25, 20, 5],   // 5, 4, 3 times for 'A'
+    'B': [12, 6, 2.5],   // 5, 4, 3 times for 'B'
+    'C': [6, 2.5, 1],    // 5, 4, 3 times for 'C'
+    'D': [2.5, 1, 0.5],  // 5, 4, 3 times for 'D'
+    'E': [2.5, 1, 0.5],  // 5, 4, 3 times for 'E'
+    'F': [1.5, 0.8, 0.3], // 5, 4, 3 times for 'F'
+    'G': [1.5, 0.8, 0.3]  // 5, 4, 3 times for 'G'
+  };
+
   for (const combination of winningCombinations) {
     const values = combination.map(index => {
       const row = Math.floor(index / 5);
@@ -95,10 +108,25 @@ function checkWinner(matrix) {
       return matrix[row][col];
     });
 
-    // Check for matching keys (with wild key handling)
+    
     const firstKey = values[0];
-    if (values.every(value => value === firstKey || value === 'W') && firstKey !== null) {
-      return { winner: true, keys: firstKey, combination };
+    const count = values.filter(value => value === firstKey || value === 'W').length;
+
+    if (values.every(value => value === firstKey || value === 'W') && firstKey !== null && firstKey !== 'W') {
+      let payoutMultiplier = 0;
+
+      // Set the multiplier based on the count of symbols
+      if (count >= 5) {
+        payoutMultiplier = payouts[firstKey][0];  
+      } else if (count === 4) {
+        payoutMultiplier = payouts[firstKey][1];  
+      } else if (count === 3) {
+        payoutMultiplier = payouts[firstKey][2];  
+      }
+
+      const payout = betAmount * payoutMultiplier;  // Calculate payout
+
+      return { winner: true, keys: firstKey, combination, payout };
     }
   }
   return { winner: false };
@@ -122,20 +150,19 @@ app.get('/play', (req, res) => {
       winner: true,
       keys: result.keys,
       combination: result.combination,
+      payout: result.payout,  
       respins: wildResult.respins,
       matrix: updatedMatrix
     });
   } else {
     res.json({
       winner: false,
-      message: 'No winner this time.',
-      respins: wildResult.respins,
+      message: 'No winner this time!',
       matrix: updatedMatrix
     });
   }
 });
 
-// Start the Express server
 app.listen(port, () => {
-  console.log(`Slot game server is running at http://localhost:${port}`);
+  console.log(`Slot game API running at http://localhost:${port}`);
 });
