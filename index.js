@@ -2,8 +2,8 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
-// Available symbols for the slot game
-const symbols = ['🍒', '🍉', '🍋', '🍊', '🍇', '⭐'];  // Including the wild symbol ('⭐')
+// Available keys for the slot game (you can replace these with any keys you prefer)
+const keys = ['A', 'B', 'C', 'D', 'E', 'W'];  // 'W' is for wild key
 
 // Hidden indices in the matrix
 const hiddenIndices1 = [0, 1, 2, 3, 4];  // Hidden indices in the first row (row 1)
@@ -13,42 +13,47 @@ const hiddenIndices2 = [20, 21, 22, 23, 24];
 const winningCombinations = [
   // Horizontal lines
   [5, 6, 7, 8, 9],
-  [10, 11, 12, 13, 14],
-  [15, 16, 17, 18, 19],
   [5, 6, 7, 8], [6, 7, 8, 9],
+  [5, 6, 7], [7, 8, 9],
+
+  [10, 11, 12, 13, 14],
   [10, 11, 12, 13], [11, 12, 13, 14],
+  [10, 11, 12], [12, 13, 14],
+
+  [15, 16, 17, 18, 19],
   [15, 16, 17, 18], [16, 17, 18, 19],
-  // Vertical lines
-//   [5, 10, 15], [6, 11, 16], [7, 12, 17], [8, 13, 18], [9, 14, 19],
-//   [5, 10, 15, 20], [6, 11, 16, 21], [7, 12, 17, 22], [8, 13, 18, 23], [9, 14, 19, 24],
-//   [0, 5, 10, 15, 20], [1, 6, 11, 16, 21], [2, 7, 12, 17, 22], [3, 8, 13, 18, 23], [4, 9, 14, 19, 24],
+  [15, 16, 17], [17, 18, 19],
+
   // Diagonal lines
-  [5, 11, 17, 13, 9], [10, 16, 22, 18, 14], [15, 11, 7, 13, 19],
-  [0, 6, 12, 18, 24], [20, 16, 12, 8, 4]
+  [5, 11, 17, 13, 9],
+  [10, 16, 22, 18, 14],
+  [15, 11, 7, 13, 19],
+  [0, 6, 12, 18, 24],
+  [20, 16, 12, 8, 4],
 ];
 
-// Function to generate a 5x5 matrix with random symbols
+// Function to generate a 5x5 matrix with random keys
 function generateMatrix() {
   let matrix = Array(5).fill(null).map(() => Array(5).fill(null));
 
-  // Fill matrix with random symbols, skipping hidden indices
+  // Fill matrix with random keys, skipping hidden indices
   for (let row = 0; row < 5; row++) {
     for (let col = 0; col < 5; col++) {
       const index = row * 5 + col;
       if (hiddenIndices1.includes(index) || hiddenIndices2.includes(index)) {
         matrix[row][col] = null;
       } else {
-        matrix[row][col] = symbols[Math.floor(Math.random() * symbols.length)];
+        matrix[row][col] = keys[Math.floor(Math.random() * keys.length)];
       }
     }
   }
 
-  // Verify all visible indices are assigned a symbol
+  // Verify all visible indices are assigned a key
   for (let row = 0; row < 5; row++) {
     for (let col = 0; col < 5; col++) {
       const index = row * 5 + col;
       if (!hiddenIndices1.includes(index) && !hiddenIndices2.includes(index) && matrix[row][col] === null) {
-        matrix[row][col] = symbols[Math.floor(Math.random() * symbols.length)];
+        matrix[row][col] = keys[Math.floor(Math.random() * keys.length)];
       }
     }
   }
@@ -64,13 +69,13 @@ function handleWilds(matrix) {
   do {
     wildsExist = false;
 
-    // Look for Wild symbols and expand them on reels 2, 3, and 4
+    // Look for Wild keys and expand them on reels 2, 3, and 4
     for (let col = 1; col <= 3; col++) {  // Columns 1, 2, and 3 (reels 2, 3, 4)
       for (let row = 0; row < 5; row++) {
-        if (matrix[row][col] === '⭐') {
+        if (matrix[row][col] === 'W') {  // 'W' is the wild key
           wildsExist = true;
-          // Expand wild symbol to fill the entire reel (column)
-          for (let r = 0; r < 5; r++) matrix[r][col] = '⭐';
+          // Expand wild key to fill the entire reel (column)
+          for (let r = 0; r < 5; r++) matrix[r][col] = 'W';
         }
       }
     }
@@ -90,9 +95,10 @@ function checkWinner(matrix) {
       return matrix[row][col];
     });
 
-    // Check for matching symbols (with wild symbol handling)
-    if (values.every(value => value === values[0] && value !== null)) {
-      return { winner: true, symbols: values[0], combination };
+    // Check for matching keys (with wild key handling)
+    const firstKey = values[0];
+    if (values.every(value => value === firstKey || value === 'W') && firstKey !== null) {
+      return { winner: true, keys: firstKey, combination };
     }
   }
   return { winner: false };
@@ -114,7 +120,7 @@ app.get('/play', (req, res) => {
   if (result.winner) {
     res.json({
       winner: true,
-      symbols: result.symbols,
+      keys: result.keys,
       combination: result.combination,
       respins: wildResult.respins,
       matrix: updatedMatrix
